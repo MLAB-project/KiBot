@@ -238,12 +238,15 @@ def load_board(pcb_file=None):
 
 
 def load_any_sch(file, project):
+    logger.debug("Loading Schematic file: "+file)
     if file[-9:] == 'kicad_sch':
         sch = SchematicV6()
         load_libs = False
     else:
         sch = Schematic()
         load_libs = True
+    logger.debug(repr(sch))
+    logger.debug(repr(load_libs))
     try:
         sch.load(file, project)
         if load_libs:

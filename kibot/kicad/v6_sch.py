@@ -684,8 +684,9 @@ class SchematicFieldV6(object):
 
     @staticmethod
     def parse(items):
-        if len(items) != 6:
-            _check_len_total(items, 5, 'property')
+        #if len(items) != 6:
+        #    _check_len_total(items, 5, 'property')
+        print("Delka pole items", len(items), items)
         field = SchematicFieldV6()
         field.name = _check_str(items, 1, 'field name')
         field.value = _check_str(items, 2, 'field value')
@@ -1204,13 +1205,18 @@ class SchematicBitmapV6(object):
 class Text(object):
     @staticmethod
     def parse(items, name):
-        _check_len_total(items, 5, name)
+        #_check_len_total(items, 5, name)
+        print("Delka seznamu je ", len(items), name, items)
         text = Text()
         text.name = name
         text.text = _check_str(items, 1, name)
         text.pos_x, text.pos_y, text.ang = _get_at(items, 2, name)
-        text.effects = _get_effects(items, 3, name)
-        text.uuid = _get_uuid(items, 4, name)
+        if(len(items) == 5):
+            text.effects = _get_effects(items, 3, name)
+            text.uuid = _get_uuid(items, 4, name)
+        else:
+            text.effects = _get_effects(items, 4, name)
+            text.uuid = _get_uuid(items, 5, name)
         return text
 
     def write(self):

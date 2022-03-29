@@ -1,9 +1,10 @@
-FROM setsoft/kicad_auto:dev
-LABEL AUTHOR Salvador E. Tropea <set@ieee.org>
+FROM mlabproject/kicad_auto
+# LABEL AUTHOR Salvador E. Tropea <set@ieee.org>
 LABEL Description="export various files from KiCad projects"
 
-RUN     apt-get update  && \
-	apt-get -y install -t buster-backports make wget curl && \
+RUN     apt-get -y update  && \
+	apt-get -y install curl && \
+	apt-get -y install make wget python3-pip && \
 	curl -s https://api.github.com/repos/INTI-CMNB/kicad-git-filters/releases/latest | grep "browser_download_url.*deb" | cut -d : -f 2,3 | tr -d \" | wget -i - && \
 	apt -y install --no-install-recommends ./*.deb && \
 	apt-get -y remove curl wget && \

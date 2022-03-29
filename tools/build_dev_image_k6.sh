@@ -1,2 +1,2 @@
 #!/bin/sh
-docker build -f tools/dev_image_k6/Dockerfile -t setsoft/kicad_auto:dev_k6 .
+docker build -f tools/dev_image_k6/Dockerfile -t mlabproject/kicad_auto . --no-cache
