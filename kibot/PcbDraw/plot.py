@@ -848,18 +848,22 @@ class PlotComponents(PlotInterface):
         group = etree.Element("g")
         group.append(component_element)
         ci = component_info
-        # When rendering mirrored (back side or explicit mirror), the parent
-        # _comp_cont has scale(-1,1) applied. This correctly mirrors component
-        # positions in board coordinates, but also incorrectly mirrors the
-        # visual SVG content of each component. Adding scale(-1,1) here cancels
-        # the visual mirror (scale(-1,1)·scale(-1,1)=identity) while the
-        # position translate still ends up at the correct mirrored location.
-        mirror_prefix = "scale(-1,1) " if (self._plotter.render_back ^ self._plotter.mirror) else ""
+        # _comp_cont has no mirror transform (see _setup_document). Instead,
+        # when rendering mirrored (back side or explicit mirror), we negate the
+        # X board coordinate so the component lands at the correct mirrored
+        # position, and flip the rotation sign so orientation appears correct
+        # in the mirrored view. The SVG visual content is never mirrored.
+        if self._plotter.render_back ^ self._plotter.mirror:
+            tx = -self._plotter.ki2svg(position[0])
+            rot = math.degrees(position[2])
+        else:
+            tx = self._plotter.ki2svg(position[0])
+            rot = -math.degrees(position[2])
+        ty = self._plotter.ki2svg(position[1])
         group.attrib["transform"] = \
-            mirror_prefix + \
-            f"translate({self._plotter.ki2svg(position[0])} {self._plotter.ki2svg(position[1])}) " + \
+            f"translate({tx} {ty}) " + \
             f"scale({ci.scale[0]}, {ci.scale[1]}) " + \
-            f"rotate({-math.degrees(position[2])}) " + \
+            f"rotate({rot}) " + \
             f"translate({-ci.origin[0]} {-ci.origin[1]})"
         self._plotter.append_component_element(group)
 
@@ -914,11 +918,16 @@ class PlotComponents(PlotInterface):
             width=str(self._plotter.ki2svg(int(info.size[0] + 2 * padding))),
             height=str(self._plotter.ki2svg(int(info.size[1] + 2 * padding))),
             style=self._plotter.get_style("highlight-style"))
-        mirror_prefix = "scale(-1,1) " if (self._plotter.render_back ^ self._plotter.mirror) else ""
+        if self._plotter.render_back ^ self._plotter.mirror:
+            htx = -self._plotter.ki2svg(position[0])
+            hrot = math.degrees(position[2])
+        else:
+            htx = self._plotter.ki2svg(position[0])
+            hrot = -math.degrees(position[2])
+        hty = self._plotter.ki2svg(position[1])
         h.attrib["transform"] = \
-            mirror_prefix + \
-            f"translate({self._plotter.ki2svg(position[0])} {self._plotter.ki2svg(position[1])}) " + \
-            f"rotate({-math.degrees(position[2])}) " + \
+            f"translate({htx} {hty}) " + \
+            f"rotate({hrot}) " + \
             f"translate({-(info.origin[0] - info.svg_offset[0]) * info.scale[0]}, {-(info.origin[1] - info.svg_offset[1]) * info.scale[1]})"
         self._plotter.append_highlight_element(h)
 
@@ -1397,12 +1406,17 @@ class PcbPlotter():
 
         self._defs = etree.SubElement(self._document.getroot(), "defs")
         self._board_cont = etree.SubElement(self._document.getroot(), "g", transform=transform_string)
+        # Component and highlight containers must NOT receive the scale(-1,1)
+        # mirror transform. Board geometry (copper, silkscreen) is correctly
+        # mirrored via _board_cont. Component SVG artwork must remain
+        # un-mirrored; the mirrored board position is handled explicitly in
+        # _append_component by negating the X coordinate.
         if self.get_style("highlight-on-top"):
-            self._comp_cont = etree.SubElement(self._document.getroot(), "g", transform=transform_string)
-            self._high_cont = etree.SubElement(self._document.getroot(), "g", transform=transform_string)
+            self._comp_cont = etree.SubElement(self._document.getroot(), "g")
+            self._high_cont = etree.SubElement(self._document.getroot(), "g")
         else:
-            self._high_cont = etree.SubElement(self._document.getroot(), "g", transform=transform_string)
-            self._comp_cont = etree.SubElement(self._document.getroot(), "g", transform=transform_string)
+            self._high_cont = etree.SubElement(self._document.getroot(), "g")
+            self._comp_cont = etree.SubElement(self._document.getroot(), "g")
 
         self._board_cont.attrib["id"] = "boardContainer"
         self._comp_cont.attrib["id"] = "componentContainer"
