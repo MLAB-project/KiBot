@@ -848,7 +848,15 @@ class PlotComponents(PlotInterface):
         group = etree.Element("g")
         group.append(component_element)
         ci = component_info
+        # When rendering mirrored (back side or explicit mirror), the parent
+        # _comp_cont has scale(-1,1) applied. This correctly mirrors component
+        # positions in board coordinates, but also incorrectly mirrors the
+        # visual SVG content of each component. Adding scale(-1,1) here cancels
+        # the visual mirror (scale(-1,1)·scale(-1,1)=identity) while the
+        # position translate still ends up at the correct mirrored location.
+        mirror_prefix = "scale(-1,1) " if (self._plotter.render_back ^ self._plotter.mirror) else ""
         group.attrib["transform"] = \
+            mirror_prefix + \
             f"translate({self._plotter.ki2svg(position[0])} {self._plotter.ki2svg(position[1])}) " + \
             f"scale({ci.scale[0]}, {ci.scale[1]}) " + \
             f"rotate({-math.degrees(position[2])}) " + \
@@ -906,7 +914,9 @@ class PlotComponents(PlotInterface):
             width=str(self._plotter.ki2svg(int(info.size[0] + 2 * padding))),
             height=str(self._plotter.ki2svg(int(info.size[1] + 2 * padding))),
             style=self._plotter.get_style("highlight-style"))
+        mirror_prefix = "scale(-1,1) " if (self._plotter.render_back ^ self._plotter.mirror) else ""
         h.attrib["transform"] = \
+            mirror_prefix + \
             f"translate({self._plotter.ki2svg(position[0])} {self._plotter.ki2svg(position[1])}) " + \
             f"rotate({-math.degrees(position[2])}) " + \
             f"translate({-(info.origin[0] - info.svg_offset[0]) * info.scale[0]}, {-(info.origin[1] - info.svg_offset[1]) * info.scale[1]})"
