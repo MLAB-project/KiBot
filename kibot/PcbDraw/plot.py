@@ -83,7 +83,7 @@ float_re = r'([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)'
 
 class SvgPathItem:
     def __init__(self, path: str) -> None:
-        path = re.sub(r"([MLA])(-?\d+)", r"\1 \2", path)
+        path = re.sub(r"([MLAC])(-?\d+)", r"\1 \2", path)
         path_elems = re.split("[, ]", path)
         path_elems = list(filter(lambda x: x, path_elems))
         if path_elems[0] != "M":
@@ -102,6 +102,12 @@ class SvgPathItem:
             args = list(map(float, path_elems[1:8]))
             self.end = (args[5], args[6])
             self.args = args[0:5]
+            self.type = path_elems[0]
+        elif path_elems[0] == "C":
+            # Cubic bezier: C x1 y1 x2 y2 x y
+            args = list(map(float, path_elems[1:7]))
+            self.end = (args[4], args[5])
+            self.args = args[0:4]
             self.type = path_elems[0]
         else:
             raise SyntaxError("Unsupported path element " + path_elems[0])
@@ -130,6 +136,10 @@ class SvgPathItem:
         if self.type == "A":
             assert(self.args is not None)
             self.args[4] = 1 if self.args[4] < 0.5 else 0
+        elif self.type == "C":
+            assert(self.args is not None)
+            # Reversing a cubic bezier swaps the two control points
+            self.args = [self.args[2], self.args[3], self.args[0], self.args[1]]
 
     def __str__(self) -> str:
         return f"{self.start} - {self.end} {self.type}"

@@ -206,3 +206,33 @@ def test_pcbdraw_sub_pcb_2(test_dir):
     ctx.expect_out_file(fname_b+'charger.svg')
     ctx.expect_out_file(fname_b+'connector.svg')
     ctx.clean_up(keep_project=True)
+
+
+def test_svg_path_item_cubic_bezier():
+    """SvgPathItem must parse cubic bezier (C) commands from Edge.Cuts SVG.
+
+    KiCad exports gr_curve as paths like 'M144.0000 140.2000 C144.0000 138.2000 ...'
+    (no space between command letter and first coordinate), which previously raised
+    SyntaxError("Unsupported path element C144.0000").
+    """
+    from kibot.PcbDraw.plot import SvgPathItem
+
+    # Path as KiCad generates it: C directly adjacent to first coordinate
+    path = "M144.0000 140.2000 C144.0000 138.2000 147.0000 138.7000 147.0000 136.7000"
+    item = SvgPathItem(path)
+
+    assert item.type == "C"
+    assert item.start == (144.0, 140.2)
+    assert item.end == (147.0, 136.7)
+    assert item.args == [144.0, 138.2, 147.0, 138.7]
+
+    # format() must produce valid SVG cubic bezier
+    formatted = item.format(first=True)
+    assert "C" in formatted
+    assert "144.0" in formatted or "144" in formatted
+
+    # flip() must swap start/end and reverse control points
+    item.flip()
+    assert item.start == (147.0, 136.7)
+    assert item.end == (144.0, 140.2)
+    assert item.args == [147.0, 138.7, 144.0, 138.2]
